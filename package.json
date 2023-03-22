@@ -8,6 +8,7 @@
 	"devDependencies": {
 		"@types/antlr4": "^4.11.2",
 		"@types/node": "^18.11.11",
+		"@unicode/unicode-15.1.0": "^0.0.2",
 		"antlr4ts": "^0.5.0-alpha.4",
 		"antlr4ts-cli": "^0.5.0-alpha.4",
 		"ts-node": "^10.9.1",
