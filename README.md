@@ -1,7 +1,15 @@
-# Kiruse's flavor of LDTK
+# JavaScript Dialect Framework
 
-**Utility library for language implementation in TypeScript.**
+**Framework for the development of JavaScript dialects in pure TypeScript.**
 
-*This is a fork of the [original LDTK library by Terran One](https://github.com/terran-one/ldtk). It follows somewhat different design choices. As a sparetime project, this fork will likely not be actively developed or maintained.*
+**This framework is still an early Work in Progress.**
 
-The purpose of this fork is to experiment with deep typing & inferrence rather than polymorphism. However, due to TypeScript's own limitations, the typing is too deep and TypeScript refuses to generate `.d.ts` files. If that is important to your project, please use the original project.
+JDF is a biased framework/toolkit for the development of new JavaScript dialects directly in JavaScript, i.e. JavaScript-like languages which transpile to native JavaScript. While it is designed for JavaScript dialects, it could be used to develop entirely unrelated programming languages, albeit with some additional work.
+
+**Why JDF?**
+- JDF is built purely in JS. Other parser generators like ANTLR or TreeSitter require additional external dependencies; ANTLR requires a Java Runtime and TreeSitter produces OS-specific binaries.
+- Your JavaScript dialect benefits of the performance of Google's V8 JavaScript engine. This saves you tremendous amounts of development time and simplifies writing e.g. a company-intern proprietary DSL.
+
+**Why NOT JDF?**
+- JavaScript is single-threaded by design, making it less efficient than parsers built in other languages like C/C++.
+- JavaScript is interpreted, meaning the parser code itself also needs to be parsed by the JS runtime every time it is run. If you're looking to build an interpreted language, JavaScript is likely not your primary choice.
