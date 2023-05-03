@@ -74,4 +74,6 @@ export default class Source {
   get row() { return this.#row }
   get col() { return this.#col }
   get isEOF() { return this.#idx >= this.text.length }
+  get remain() { return this.text.substring(this.#idx) }
+  get length() { return this.text.length - this.#idx }
 }
