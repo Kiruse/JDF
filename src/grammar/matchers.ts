@@ -1,5 +1,5 @@
 import { Node } from './automaton'
-import { CharCodeRange } from './ranges';
+import { CharCodeRanges } from './ranges';
 import { SubGraph } from './types';
 
 export type Matcher = LiteralMatcher | ChainMatcher | OptionsMatcher | AnyMatcher | RangesMatcher | RepeatMatcher;
@@ -65,7 +65,7 @@ export type AnyMatcher = ReturnType<typeof any>;
 export const any = () => ({
   type: 'any',
   toSubGraph() {
-    const node = Node({ match: [CharCodeRange(0, 0x10FFFF)] });
+    const node = Node({ match: new CharCodeRanges([[0, 0x10FFFF]]) });
     return {
       root: node,
       tails: [node],
@@ -74,7 +74,7 @@ export const any = () => ({
 });
 
 export type RangesMatcher = ReturnType<typeof ranges>;
-export const ranges = (ranges: CharCodeRange[]) => ({
+export const ranges = (ranges: CharCodeRanges) => ({
   type: 'range',
   ranges,
   toSubGraph() {

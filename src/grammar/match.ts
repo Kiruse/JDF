@@ -2,7 +2,7 @@ import { isPunctuation, isWhitespace } from '../generated/unicode-helpers';
 import Source from '../source'
 import * as Matchers from './matchers';
 import { Matcher } from './matchers';
-import { CharCodeRange } from './ranges';
+import { CharCodeRange, CharCodeRanges } from './ranges';
 
 export default function match(strings: TemplateStringsArray, ...values: any[]) {
   return parseOptions(new TaggedSource(strings, values));
@@ -254,7 +254,7 @@ function parseRange(src: Source): Matcher {
   while (!src.isEOF && src.peek() !== ']') {
     // special case to include - in range, e.g. [a-z-]
     if (src.peek(2) === '-]') {
-      ranges.push(CharCodeRange('-'))
+      ranges.push(new CharCodeRange('-'))
       src.consume();
       break;
     }
@@ -267,16 +267,16 @@ function parseRange(src: Source): Matcher {
       const end = consumeChar(lookahead);
       // semi-special case, e.g. [a-z_-]
       if (end === undefined) {
-        ranges.push(CharCodeRange(char));
-        ranges.push(CharCodeRange('-'));
+        ranges.push(new CharCodeRange(char));
+        ranges.push(new CharCodeRange('-'));
       } else {
-        ranges.push(CharCodeRange(char, end));
+        ranges.push(new CharCodeRange(char, end));
       }
       
       src.consume();
       consumeChar(src);
     } else {
-      ranges.push(CharCodeRange(char));
+      ranges.push(new CharCodeRange(char));
     }
   }
   
@@ -291,7 +291,7 @@ function parseRange(src: Source): Matcher {
   
   if (!src.consume(']')) throw Error('Expected range close "]"');
   if (!ranges.length) throw Error('Empty range');
-  return Matchers.ranges(ranges);
+  return Matchers.ranges(new CharCodeRanges(ranges));
 }
 
 const isMatcher = (v: any): v is Matcher => v && typeof v === 'object' && typeof v.toSubGraph === 'function';

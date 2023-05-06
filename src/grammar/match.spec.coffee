@@ -156,13 +156,14 @@ describe 'match', ->
       
       expect(m1.matchers[1]).to.lookLike
         type: 'range'
-        ranges: [
-          { begin:  97, end:  97 }
-          { begin: 101, end: 101 }
-          { begin: 105, end: 105 }
-          { begin: 111, end: 111 }
-          { begin: 117, end: 117 }
-        ]
+        ranges:
+          subranges: [
+            { begin:  97, end:  97 }
+            { begin: 101, end: 101 }
+            { begin: 105, end: 105 }
+            { begin: 111, end: 111 }
+            { begin: 117, end: 117 }
+          ]
       expect(m1.matchers[2]).to.lookLike
         type: 'literal'
         match: 'o'
@@ -173,9 +174,10 @@ describe 'match', ->
       
       expect(m1.matchers[0]).to.lookLike
         type: 'range'
-        ranges: [
-          { begin:  97, end:  99 }
-        ]
+        ranges:
+          subranges: [
+            { begin:  97, end:  99 }
+          ]
     it 'merges overlapping ranges', ->
       m1 = match"[a-fe-h]"
       expect(m1.type).to.equal 'chain'
@@ -183,9 +185,10 @@ describe 'match', ->
       
       expect(m1.matchers[0]).to.lookLike
         type: 'range'
-        ranges: [
-          { begin:  97, end: 104 }
-        ]
+        ranges:
+          subranges: [
+            { begin:  97, end: 104 }
+          ]
     it 'sorts ranges', ->
       m1 = match"[e-ha-c]"
       expect(m1.type).to.equal 'chain'
@@ -193,10 +196,11 @@ describe 'match', ->
       
       expect(m1.matchers[0]).to.lookLike
         type: 'range'
-        ranges: [
-          { begin:  97, end:  99 }
-          { begin: 101, end: 104 }
-        ]
+        ranges:
+          subranges: [
+            { begin:  97, end:  99 }
+            { begin: 101, end: 104 }
+          ]
     it 'normalizes ranges', ->
       m1 = match"[cdba-f321-9]"
       expect(m1.type).to.equal 'chain'
@@ -204,10 +208,11 @@ describe 'match', ->
       
       expect(m1.matchers[0]).to.lookLike
         type: 'range'
-        ranges: [
-          { begin:  49, end:  57 }
-          { begin:  97, end: 102 }
-        ]
+        ranges:
+          subranges: [
+            { begin:  49, end:  57 }
+            { begin:  97, end: 102 }
+          ]
     it 'supports trailing dashes', ->
       m1 = match"[-]"
       expect(m1.type).to.equal 'chain'
@@ -215,9 +220,10 @@ describe 'match', ->
       
       expect(m1.matchers[0]).to.lookLike
         type: 'range'
-        ranges: [
-          { begin:  45, end:  45 }
-        ]
+        ranges:
+          subranges: [
+            { begin:  45, end:  45 }
+          ]
       
       m2 = match"[a-f-]"
       expect(m2.type).to.equal 'chain'
@@ -225,10 +231,11 @@ describe 'match', ->
       
       expect(m2.matchers[0]).to.lookLike
         type: 'range'
-        ranges: [
-          { begin:  45, end:  45 }
-          { begin:  97, end: 102 }
-        ]
+        ranges:
+          subranges: [
+            { begin:  45, end:  45 }
+            { begin:  97, end: 102 }
+          ]
       
       m3 = match"[a-f_-]"
       expect(m3.type).to.equal 'chain'
@@ -236,11 +243,12 @@ describe 'match', ->
       
       expect(m3.matchers[0]).to.lookLike
         type: 'range'
-        ranges: [
-          { begin:  45, end:  45 }
-          { begin:  95, end:  95 }
-          { begin:  97, end: 102 }
-        ]
+        ranges:
+          subranges: [
+            { begin:  45, end:  45 }
+            { begin:  95, end:  95 }
+            { begin:  97, end: 102 }
+          ]
     it 'fails', ->
       expect(=> match"[-a]").to.throw()
       expect(=> match"[1-3-5]").to.throw()

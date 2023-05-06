@@ -1,6 +1,6 @@
 import Source from '../source'
 import type { Matcher } from './matchers'
-import { CharCodeRange } from './ranges'
+import { CharCodeRange, CharCodeRanges } from './ranges'
 
 /** Deterministic finite automaton, processing an input stream through a given consumer graph. When
  * non-deterministic behavior would be required, throws instead.
@@ -39,10 +39,10 @@ export class Automaton {
     this.#dispatch(node, 'enter');
     
     while (!src.isEOF) {
-      if (node.next.find(n => !n.match.length))
+      if (node.next.find(n => !n.match.subranges.length))
         throw Error('Invalid epsilon transition');
       
-      const next = node.next.find(n => n.match.some(m => m.includes(src.peek())));
+      const next = node.next.find(n => n.match.includes(src.peek()));
       if (!next) {
         if (this.#isTerminal) break;
         else throw new UnexpectedEOFError(node, src.clone());
@@ -100,7 +100,7 @@ export class Automaton {
           continue;
         }
         
-        if (!next.match.length) {
+        if (!next.match.subranges.length) {
           const nextnext = getNextNodes(next).map(n => n.clone());
           nextnext.forEach(n => {
             n.onEnter.push(...next.onEnter);
@@ -113,9 +113,9 @@ export class Automaton {
       }
       
       // then, merge overlapping nodes
-      // TODO
+      // TODO: find unique nodes using node.match.unique method
       
-      if (!node.match.length)
+      if (!node.match.subranges.length)
         visited.set(node, newnext);
       else
         visited.set(node, [node]);
@@ -138,7 +138,7 @@ export type TransitionCallback = (state: Automaton) => void;
 export interface Node {
   /** The matcher to which this node belongs. Provides additional context. */
   matcher?: Matcher;
-  match: CharCodeRange[];
+  match: CharCodeRanges;
   next: Node[];
   onEnter: TransitionCallback[];
   onExit: TransitionCallback[];
@@ -148,7 +148,7 @@ export interface Node {
 
 interface NodeArgs {
   matcher?: Matcher;
-  match: CharCodeRange[];
+  match: CharCodeRanges;
   next?: Node[];
   onEnter?: TransitionCallback[];
   onExit?: TransitionCallback[];
@@ -162,7 +162,7 @@ export const Node = ({ next = [], onEnter = [], onExit = [], ...args }: NodeArgs
   clone(): Node {
     return Node({
       matcher: this.matcher,
-      match: this.match.slice(),
+      match: this.match.clone(),
       next: this.next.slice(),
       onEnter: this.onEnter.slice(),
       onExit: this.onExit.slice(),
@@ -172,10 +172,10 @@ export const Node = ({ next = [], onEnter = [], onExit = [], ...args }: NodeArgs
 
 Node.Char = (c: string, args: Omit<NodeArgs, 'match'> = {}) => Node({
   ...args,
-  match: [CharCodeRange(c)],
+  match: new CharCodeRanges([[c, c]]),
 });
 
-Node.Empty = (args: Omit<NodeArgs, 'match'> = {}) => Node({ ...args, match: [] });
+Node.Empty = (args: Omit<NodeArgs, 'match'> = {}) => Node({ ...args, match: new CharCodeRanges() });
 
 Node.parseEscape = (src: Source): CharCodeRange => {
   if (!src.consume('\\')) throw Error('Expected escape character');
@@ -204,7 +204,7 @@ Node.parseEscape = (src: Source): CharCodeRange => {
     default: code = c.charCodeAt(0);
   }
   
-  return CharCodeRange(code);
+  return new CharCodeRange(code);
 }
 
 export class UnexpectedEOFError extends Error {
