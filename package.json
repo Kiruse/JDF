@@ -24,7 +24,7 @@
 		"build": "rm -rf dist && tsc",
 		"build:unicode": "coffee script/build-unicode-helpers.coffee",
 		"sample:gen:toylang": "ts-node ./sample/ToyLang/generate.ts",
-		"test": "mocha --require coffeescript/register --require ts-node/register"
+		"test": "mocha --require coffeescript/register --require ts-node/register --require testing/lookslike.coffee"
 	},
 	"prettier": {
 		"printWidth": 80,

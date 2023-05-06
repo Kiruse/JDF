@@ -2,7 +2,7 @@ import { isPunctuation, isWhitespace } from '../generated/unicode-helpers';
 import Source from '../source'
 import * as Matchers from './matchers';
 import { Matcher } from './matchers';
-import { CharCodeRange } from './types';
+import { CharCodeRange } from './ranges';
 
 export default function match(strings: TemplateStringsArray, ...values: any[]) {
   return parseOptions(new TaggedSource(strings, values));
@@ -244,42 +244,39 @@ function parseRange(src: Source): Matcher {
   const consumeChar = (src: Source) => {
     const char = src.peek();
     switch (char) {
-      case '\\': return parseEscape(src).charCodeAt(0);
+      case '\\': return parseEscape(src);
       case '-':
       case ']': return undefined;
-      default: return src.consume()!.charCodeAt(0);
+      default: return src.consume()!;
     }
-  }
-  const pushChar = (char: number) => {
-    ranges.push({begin: char, end: char});
   }
   
   while (!src.isEOF && src.peek() !== ']') {
     // special case to include - in range, e.g. [a-z-]
     if (src.peek(2) === '-]') {
-      pushChar('-'.charCodeAt(0));
+      ranges.push(CharCodeRange('-'))
       src.consume();
       break;
     }
     
     const char = consumeChar(src);
-    if (!char) throw Error(`Unexpected range character "${src.peek()}"`);
+    if (!char) throw Error(`Unexpected range character "${char}"`);
     const lookahead = src.clone();
     
     if (lookahead.consume('-')) {
       const end = consumeChar(lookahead);
       // semi-special case, e.g. [a-z_-]
       if (end === undefined) {
-        pushChar(char);
-        pushChar('-'.charCodeAt(0));
+        ranges.push(CharCodeRange(char));
+        ranges.push(CharCodeRange('-'));
       } else {
-        ranges.push({begin: char, end});
+        ranges.push(CharCodeRange(char, end));
       }
       
       src.consume();
       consumeChar(src);
     } else {
-      pushChar(char);
+      ranges.push(CharCodeRange(char));
     }
   }
   

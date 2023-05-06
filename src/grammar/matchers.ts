@@ -1,5 +1,6 @@
 import { Node } from './automaton'
-import type { CharCodeRange, SubGraph } from './types';
+import { CharCodeRange } from './ranges';
+import { SubGraph } from './types';
 
 export type Matcher = LiteralMatcher | ChainMatcher | OptionsMatcher | AnyMatcher | RangesMatcher | RepeatMatcher;
 export interface GenericMatcher {
@@ -27,10 +28,10 @@ export const chain = (matchers: GenericMatcher[]) => ({
   type: 'chain',
   matchers,
   toSubGraph() {
-    if (!matchers.length)
+    if (!this.matchers.length)
       throw Error('Empty matcher chain');
     
-    const subgraphs = matchers.map(m => m.toSubGraph());
+    const subgraphs = this.matchers.map(m => m.toSubGraph());
     for (let i = 1; i < subgraphs.length; ++i) {
       subgraphs[i-1].tails.forEach(tail => {
         tail.next.push(subgraphs[i].root);
@@ -64,7 +65,7 @@ export type AnyMatcher = ReturnType<typeof any>;
 export const any = () => ({
   type: 'any',
   toSubGraph() {
-    const node = Node({ match: [{ begin: 0, end: 0x10ffff }] });
+    const node = Node({ match: [CharCodeRange(0, 0x10FFFF)] });
     return {
       root: node,
       tails: [node],

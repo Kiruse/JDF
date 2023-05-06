@@ -1,5 +1,6 @@
 {expect} = require 'chai'
 match = require('./match').default
+{CharCodeRange} = require './ranges'
 
 describe 'match', ->
   describe 'literal', ->
@@ -147,90 +148,99 @@ describe 'match', ->
     it 'works 1', ->
       m1 = match"f[aeiou]o"
       expect(m1.type).to.equal 'chain'
-      expect(m1.matchers.length).to.equal 3
+      expect(m1.matchers).to.be.lengthOf 3
       
-      expect(m1.matchers[0].type).to.equal 'literal'
-      expect(m1.matchers[0].match).to.equal 'f'
+      expect(m1.matchers[0]).to.lookLike
+        type: 'literal'
+        match: 'f'
       
-      expect(m1.matchers[1].type).to.equal 'range'
-      expect(m1.matchers[1].ranges).to.deep.equal [
-        { begin:  97, end:  97 },
-        { begin: 101, end: 101 },
-        { begin: 105, end: 105 },
-        { begin: 111, end: 111 },
-        { begin: 117, end: 117 },
-      ]
-      
-      expect(m1.matchers[2].type).to.equal 'literal'
-      expect(m1.matchers[2].match).to.equal 'o'
+      expect(m1.matchers[1]).to.lookLike
+        type: 'range'
+        ranges: [
+          { begin:  97, end:  97 }
+          { begin: 101, end: 101 }
+          { begin: 105, end: 105 }
+          { begin: 111, end: 111 }
+          { begin: 117, end: 117 }
+        ]
+      expect(m1.matchers[2]).to.lookLike
+        type: 'literal'
+        match: 'o'
     it 'merges adjacent ranges', ->
       m1 = match"[abc]"
       expect(m1.type).to.equal 'chain'
       expect(m1.matchers.length).to.equal 1
       
-      expect(m1.matchers[0].type).to.equal 'range'
-      expect(m1.matchers[0].ranges).to.deep.equal [
-        { begin:  97, end:  99 },
-      ]
+      expect(m1.matchers[0]).to.lookLike
+        type: 'range'
+        ranges: [
+          { begin:  97, end:  99 }
+        ]
     it 'merges overlapping ranges', ->
       m1 = match"[a-fe-h]"
       expect(m1.type).to.equal 'chain'
       expect(m1.matchers.length).to.equal 1
       
-      expect(m1.matchers[0].type).to.equal 'range'
-      expect(m1.matchers[0].ranges).to.deep.equal [
-        { begin:  97, end: 104 },
-      ]
+      expect(m1.matchers[0]).to.lookLike
+        type: 'range'
+        ranges: [
+          { begin:  97, end: 104 }
+        ]
     it 'sorts ranges', ->
       m1 = match"[e-ha-c]"
       expect(m1.type).to.equal 'chain'
       expect(m1.matchers.length).to.equal 1
       
-      expect(m1.matchers[0].type).to.equal 'range'
-      expect(m1.matchers[0].ranges).to.deep.equal [
-        { begin:  97, end:  99 },
-        { begin: 101, end: 104 },
-      ]
+      expect(m1.matchers[0]).to.lookLike
+        type: 'range'
+        ranges: [
+          { begin:  97, end:  99 }
+          { begin: 101, end: 104 }
+        ]
     it 'normalizes ranges', ->
       m1 = match"[cdba-f321-9]"
       expect(m1.type).to.equal 'chain'
       expect(m1.matchers.length).to.equal 1
       
-      expect(m1.matchers[0].type).to.equal 'range'
-      expect(m1.matchers[0].ranges).to.deep.equal [
-        { begin:  49, end:  57 },
-        { begin:  97, end: 102 },
-      ]
+      expect(m1.matchers[0]).to.lookLike
+        type: 'range'
+        ranges: [
+          { begin:  49, end:  57 }
+          { begin:  97, end: 102 }
+        ]
     it 'supports trailing dashes', ->
       m1 = match"[-]"
       expect(m1.type).to.equal 'chain'
       expect(m1.matchers.length).to.equal 1
       
-      expect(m1.matchers[0].type).to.equal 'range'
-      expect(m1.matchers[0].ranges).to.deep.equal [
-        { begin:  45, end:  45 },
-      ]
+      expect(m1.matchers[0]).to.lookLike
+        type: 'range'
+        ranges: [
+          { begin:  45, end:  45 }
+        ]
       
       m2 = match"[a-f-]"
       expect(m2.type).to.equal 'chain'
       expect(m2.matchers.length).to.equal 1
       
-      expect(m2.matchers[0].type).to.equal 'range'
-      expect(m2.matchers[0].ranges).to.deep.equal [
-        { begin:  45, end:  45 },
-        { begin:  97, end: 102 },
-      ]
+      expect(m2.matchers[0]).to.lookLike
+        type: 'range'
+        ranges: [
+          { begin:  45, end:  45 }
+          { begin:  97, end: 102 }
+        ]
       
       m3 = match"[a-f_-]"
       expect(m3.type).to.equal 'chain'
       expect(m3.matchers.length).to.equal 1
       
-      expect(m3.matchers[0].type).to.equal 'range'
-      expect(m3.matchers[0].ranges).to.deep.equal [
-        { begin:  45, end:  45 },
-        { begin:  95, end:  95 },
-        { begin:  97, end: 102 },
-      ]
+      expect(m3.matchers[0]).to.lookLike
+        type: 'range'
+        ranges: [
+          { begin:  45, end:  45 }
+          { begin:  95, end:  95 }
+          { begin:  97, end: 102 }
+        ]
     it 'fails', ->
       expect(=> match"[-a]").to.throw()
       expect(=> match"[1-3-5]").to.throw()
