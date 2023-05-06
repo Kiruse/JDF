@@ -61,17 +61,22 @@ export interface CharCodeRange {
   includes(char: string): boolean;
   overlaps(other: CharCodeRange): boolean;
 }
-export const CharCodeRange = (begin: number | string, end = begin) => ({
-  begin: normalizeRangeArg(begin),
-  end:   normalizeRangeArg(end),
-  includes(char: string) {
-    const code = char.charCodeAt(0);
-    return code >= this.begin && code <= this.end;
-  },
-  overlaps(other: CharCodeRange) {
-    return this.begin <= other.end && this.end >= other.begin;
-  },
-});
+export const CharCodeRange = (begin: number | string, end = begin) => {
+  begin = normalizeRangeArg(begin);
+  end   = normalizeRangeArg(end);
+  if (begin > end) throw Error('Range end must be greater than or equal to range begin');
+  return {
+    begin,
+    end,
+    includes(char: string) {
+      const code = char.charCodeAt(0);
+      return code >= this.begin && code <= this.end;
+    },
+    overlaps(other: CharCodeRange) {
+      return this.begin <= other.end && this.end >= other.begin;
+    },
+  };
+}
 
 function normalizeSubrangesArg(subranges: (CharCodeRange | [number, number])[]): CharCodeRange[] {
   return subranges
