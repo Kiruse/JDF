@@ -1,5 +1,5 @@
 {
-	"name": "@jdf/core",
+	"name": "@kiruse/jdf-core",
 	"version": "0.2.0",
 	"description": "JavaScript Dialect Framework core",
 	"type": "module",
