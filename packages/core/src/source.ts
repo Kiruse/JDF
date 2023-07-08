@@ -61,7 +61,8 @@ export default class Source {
   consumeWord(): string | undefined;
   consumeWord(word: string): boolean;
   consumeWord(word?: string) {
-    if (!isWhitespace(this.prev) && !isPunctuation(this.prev)) return word ? false : undefined;
+    if (this.#idx > 0 && !isWhitespace(this.prev) && !isPunctuation(this.prev))
+      return word ? false : undefined;
     const read = this.consumeUntil(s => isWhitespace(s.peek()) || isPunctuation(s.peek()));
     if (read) {
       return read === word;
