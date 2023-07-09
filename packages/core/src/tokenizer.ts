@@ -359,3 +359,12 @@ export class TokenizeError extends Error {
     this.name = 'TokenizeError';
   }
 }
+
+export function keyword<T extends string = string>(match: string): TokenConsumerCallback<T> {
+  return ({ src }) => {
+    if (src.consumeWord(match))
+      return Ok(match);
+    return Err();
+  }
+}
+keyword.pin = <T extends string>() => (match: T) => keyword<T>(match);
