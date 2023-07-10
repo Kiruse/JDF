@@ -1,0 +1,11 @@
+{
+  "name": "@kiruse/jdf-sample-toylang",
+  "version": "0.1.0",
+  "description": "A toy language built with JDF.",
+  "type": "module",
+  "dependencies": {
+    "@kiruse/jdf-core": "^0.2.1"
+  },
+  "devDependencies": {},
+  "private": true
+}

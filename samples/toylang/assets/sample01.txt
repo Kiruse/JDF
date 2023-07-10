@@ -1,0 +1,6 @@
+foo() = 'bar'
+
+sum(a, b) = a + b
+
+print("Hello, world!")
+print(`1 + 2 = ${sum(1, 2)}`)
