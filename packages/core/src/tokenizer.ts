@@ -61,7 +61,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
         tokens.push(res.value);
       
       if (_mode !== null) {
-        this.getMode(_mode).consume(source);
+        tokens.push(...this.getMode(_mode).consume(source));
         _mode = null;
       }
     }
