@@ -1,6 +1,6 @@
 {
 	"name": "@kiruse/jdf-core",
-	"version": "0.2.1-fix.1",
+	"version": "0.2.2",
 	"description": "JavaScript Dialect Framework core",
 	"type": "module",
 	"main": "dist/index.js",

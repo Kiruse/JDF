@@ -2,7 +2,7 @@
   "name": "jdf",
   "description": "JDF JavaScript Dialect Framework is a framework for the development of JavaScript dialects or programming languages transpiling to JavaScript.",
   "repository": "https://github.com/Kiruse/JDF.git",
-  "version": "0.2.1-fix.1",
+  "version": "0.2.2",
   "workspaces": [
     "samples/*",
     "packages/*"

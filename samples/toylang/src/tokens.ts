@@ -1,3 +1,8 @@
+import type { Token as JDFToken } from '@kiruse/jdf-core'
+
+export type Token<T extends TokenType = TokenType> = JDFToken<T>;
+export type IdentToken = Token<'ident'>;
+export type IndentToken = Token<'special.indent'>;
 
 export type TokenizerModes =
   | 'root' // default tokenizer mode
