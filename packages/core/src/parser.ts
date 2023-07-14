@@ -164,6 +164,17 @@ export function ParseOps<ASTNode extends ASTBase>() {
     }
     //#endregion replace
     
+    //#region drop
+    drop(pred: NodePred<ASTNode>): Pass<ASTNode> {
+      return nodes => {
+        const idx = this.findNode(nodes, pred);
+        if (idx === -1) return false;
+        nodes.splice(idx, 1);
+        return true;
+      }
+    }
+    //#endregion
+    
     /** Creates a predicate to check if the node passed to the returned predicate is a token of given type. */
     isToken(token: TokenType<ASTNode>): NodePredFn<ASTNode> {
       return node => isTokenNode(node) && node.token.type === token;
@@ -174,6 +185,25 @@ export function ParseOps<ASTNode extends ASTBase>() {
       if (typeof pred === 'string')
         pred = (node: ASTNode) => node.type === _type;
       return nodes.findIndex((node, i) => i >= offset && i < limit && (pred as any)(node));
+    }
+    
+    /** Breadth-first recursive search for a node that matches the given predicate */
+    findDeepNode(nodes: ASTNode[], pred: NodePred<ASTNode>) {
+      const _type = pred;
+      if (typeof pred === 'string')
+        pred = (node: ASTNode) => node.type === _type;
+      const recurse = (nodes: ASTNode[]): ASTNode | undefined => {
+        for (const node of nodes)
+          if ((pred as any)(node)) return node
+        
+        for (const node of nodes) {
+          if ('children' in node) {
+            const found = recurse(node.children as any);
+            if (found) return found;
+          }
+        }
+      }
+      return recurse(nodes);
     }
     
     opthrow(throws: boolean, error: Error): false;
