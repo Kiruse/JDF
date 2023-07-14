@@ -6,6 +6,8 @@
   "dependencies": {
     "@kiruse/jdf-core": "^0.2.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "yaml": "^2.3.1"
+  },
   "private": true
 }

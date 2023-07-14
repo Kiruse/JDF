@@ -1,16 +1,13 @@
 import { TokenizeError } from '@kiruse/jdf-core'
-import chalk from 'chalk'
 import fs from 'node:fs/promises'
+import * as YAML from 'yaml'
 import parse from './dist/parse.js'
 
 const source = await fs.readFile('./assets/sample01.txt', 'utf8');
 
 try {
-  console.log(
-    ...parse(source)
-    .filter(n => n.type === 'group')
-    .map(n => n.children)
-  )
+  const ast = parse(source);
+  await fs.writeFile('ast.yml', YAML.stringify(ast, replacer, 2));
 } catch (e) {
   if (e instanceof TokenizeError) {
     console.error(`Error at ${e.pos}:`, e.message);
@@ -24,4 +21,10 @@ try {
   } else {
     throw e;
   }
+}
+
+function replacer(key, value) {
+  if (key === 'loc') return undefined;
+  if (typeof value === 'function') return undefined;
+  return value;
 }

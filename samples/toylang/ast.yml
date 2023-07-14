@@ -1,0 +1,157 @@
+- type: token
+  token:
+    type: ident
+    value: foo
+- type: group
+  left:
+    type: punct.paren.open
+    value: (
+  right:
+    type: punct.paren.close
+    value: )
+  children: []
+- type: token
+  token:
+    type: punct
+    value: =
+- type: lit.str
+  value: bar
+  token:
+    type: lit.str
+    value: bar
+- type: token
+  token:
+    type: special.newline
+    value: ""
+- type: token
+  token:
+    type: ident
+    value: sum
+- type: group
+  left:
+    type: punct.paren.open
+    value: (
+  right:
+    type: punct.paren.close
+    value: )
+  children:
+    - type: token
+      token:
+        type: ident
+        value: a
+    - type: token
+      token:
+        type: punct
+        value: ","
+    - type: token
+      token:
+        type: ident
+        value: b
+- type: token
+  token:
+    type: punct
+    value: =
+- type: token
+  token:
+    type: ident
+    value: a
+- type: token
+  token:
+    type: punct
+    value: +
+- type: token
+  token:
+    type: ident
+    value: b
+- type: token
+  token:
+    type: special.newline
+    value: ""
+- type: token
+  token:
+    type: ident
+    value: print
+- type: group
+  left:
+    type: punct.paren.open
+    value: (
+  right:
+    type: punct.paren.close
+    value: )
+  children:
+    - type: lit.str
+      value: Hello, world!
+      token:
+        type: lit.str
+        value: Hello, world!
+- type: token
+  token:
+    type: special.newline
+    value: ""
+- type: token
+  token:
+    type: ident
+    value: print
+- type: group
+  left:
+    type: punct.paren.open
+    value: (
+  right:
+    type: punct.paren.close
+    value: )
+  children:
+    - type: lit.tpl
+      left:
+        type: lit.tpl.open
+        value: "`"
+      right:
+        type: lit.tpl.close
+        value: "`"
+      children:
+        - type: token
+          token:
+            type: lit.tpl.str
+            value: "1 + 2 = "
+        - type: intrp
+          left:
+            type: lit.tpl.intrp.open
+            value: ${
+          right:
+            type: lit.tpl.intrp.close
+            value: "}"
+          children:
+            - type: token
+              token:
+                type: ident
+                value: sum
+            - type: group
+              left:
+                type: punct.paren.open
+                value: (
+              right:
+                type: punct.paren.close
+                value: )
+              children:
+                - type: token
+                  token:
+                    type: lit.int
+                    value: "1"
+                - type: token
+                  token:
+                    type: punct
+                    value: ","
+                - type: token
+                  token:
+                    type: special.whitespace
+                    value: " "
+                - type: token
+                  token:
+                    type: lit.int
+                    value: "2"
+- type: token
+  token:
+    type: special.newline
+    value: ""
+- type: token
+  token:
+    type: EOF

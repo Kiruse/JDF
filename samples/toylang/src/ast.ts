@@ -27,6 +27,12 @@ export type ExprNode =
   | AssignNode
   | FnCallNode
   | TypeAssertNode
+  | LiteralNode
+  | InterpolationNode
+
+export type LiteralNode =
+  | StringLiteral
+  | StringTemplateLiteral
 
 export interface BlockNode {
   type: 'block';
@@ -35,8 +41,8 @@ export interface BlockNode {
 
 export interface GroupNode {
   type: 'group';
-  left: Token;
-  right: Token;
+  left: Token<'punct.paren.open'>;
+  right: Token<'punct.paren.close'>;
   children: ASTNode[];
 }
 
@@ -64,6 +70,24 @@ export interface TypeAssertNode {
   type: 'type-assert';
   lhs: ExprNode;
   rhs: ExprNode;
+}
+
+export interface StringLiteral {
+  type: 'lit.str';
+  value: string;
+  token: Token<'lit.str'>;
+}
+
+export interface StringTemplateLiteral {
+  type: 'lit.tpl';
+  children: (Token<'lit.tpl.str'> | InterpolationNode)[];
+}
+
+export interface InterpolationNode {
+  type: 'intrp';
+  left: Token<'lit.tpl.intrp.open'>;
+  right: Token<'lit.tpl.intrp.close'>;
+  children: ASTNode[];
 }
 
 export interface TokenNode {

@@ -66,6 +66,8 @@ export function ParseOps<ASTNode extends ASTBase>() {
     throws?: boolean;
   }
   
+  type ReplaceFactory = (fact: (node: ASTNode) => ASTNode) => Pass<ASTNode>;
+  
   return new class {
     /** Dictates the default value of `throw` options in parse ops */
     debug = false;
@@ -136,6 +138,17 @@ export function ParseOps<ASTNode extends ASTBase>() {
       }
     }
     //#endregion group
+    
+    //#region replace
+    replace(pred: NodePred<ASTNode>): ReplaceFactory {
+      return fact => nodes => {
+        const idx = this.findNode(nodes, pred);
+        if (idx === -1) return false;
+        nodes[idx] = fact(nodes[idx]);
+        return true;
+      }
+    }
+    //#endregion replace
     
     /** Creates a predicate to check if the node passed to the returned predicate is a token of given type. */
     isToken(token: TokenType<ASTNode>): NodePredFn<ASTNode> {
