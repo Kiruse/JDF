@@ -1,6 +1,6 @@
 {
 	"name": "@kiruse/jdf-core",
-	"version": "0.2.3",
+	"version": "0.2.3-hotfix.1",
 	"description": "JavaScript Dialect Framework core",
 	"type": "module",
 	"main": "dist/index.js",
@@ -11,6 +11,7 @@
 		"build:unicode": "coffee script/build-unicode-helpers.coffee",
 		"watch": "coffee -cw test",
 		"test": "mocha",
+		"prepack": "yarn build",
 		"pretest": "yarn build"
 	},
 	"dependencies": {
