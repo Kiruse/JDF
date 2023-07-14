@@ -173,6 +173,7 @@ export default class Source {
   
   get curr() { return this.peek() }
   get prev() { return this.text[this.#idx - 1] }
+  get offset() { return this.#idx }
   get line() { return this.#row }
   get row() { return this.#row }
   get col() { return this.#col }

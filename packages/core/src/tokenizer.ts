@@ -1,5 +1,5 @@
 import Source from './source.js'
-import { Err, Ok, Result } from './types.js';
+import { Err, Ok, ParseError, Position, Result, SourceLocation } from './types.js';
 
 export type TokenConsumer<T extends string, M extends string> =
   | string
@@ -262,7 +262,7 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
       const res = this.consumeDef(def);
       if (res.ok) return res;
     }
-    return Err(new ParseError(`Expected one of ${types.map(t => JSON.stringify(t)).join(', ')}`, Position(this.source)));
+    return Err(new ParseError(`Expected one of ${types.map(t => JSON.stringify(t)).join(', ')}`, makeloc(this.source, this.source)));
   }
   
   consumeDef(def: TokenDefinition<Types, Modes>) {
@@ -273,7 +273,7 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
       if (src.consume(consume)) {
         return Ok(consume);
       } else {
-        return Err(new ParseError(`Token '${def.type}' expected literal '${consume}'`, Position(src)));
+        return Err(new ParseError(`Token '${def.type}' expected literal '${consume}'`, makeloc(src, src)));
       }
     }
     
@@ -282,7 +282,7 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
       if (consumed) {
         return Ok(consumed);
       } else {
-        return Err(new ParseError(`Token '${def.type}' expected to match ${consume}`, Position(src)));
+        return Err(new ParseError(`Token '${def.type}' expected to match ${consume}`, makeloc(src, src)));
       }
     }
     
@@ -294,13 +294,16 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
         return Ok(res.value);
       }
       
+      const srcEnd = src.clone();
+      src.copy(srcStart); // rollback
+      
       if (res.error) {
         if (typeof res.error === 'string')
-          return Err(new ParseError(res.error, Position(srcStart)));
+          return Err(new ParseError(res.error, makeloc(srcStart, srcEnd)));
         else
           return Err(res.error);
       } else {
-        return Err(new ParseError(`Token '${def.type}' failed to parse`, Position(srcStart)));
+        return Err(new ParseError(`Token '${def.type}' failed to parse`, makeloc(srcStart, srcEnd)));
       }
     }
     return Err(new ParseError(`Invalid token definition for '${type}'`));
@@ -332,27 +335,6 @@ export interface TokenDefinition<T extends string = string, M extends string = s
    */
   consume: TokenConsumer<T, M>;
 }
-
-export interface SourceLocation {
-  source: string | null;
-  start: Position;
-  end: Position;
-}
-export interface Position {
-  line: number;
-  column: number;
-}
-export function Position(line: number, column: number): Position;
-export function Position(src: Source): Position;
-export function Position(line: number | Source, column: number = 0): Position {
-  function toString(this: Position) { return `:${this.line}:${this.column}` }
-  if (typeof line !== 'number') {
-    column = line.col;
-    line = line.line;
-  }
-  const result = { line, column, toString };
-  return result;
-}
 //#endregion
 
 function makeloc(src1: Source, src2: Source): SourceLocation {
@@ -365,13 +347,6 @@ function makeloc(src1: Source, src2: Source): SourceLocation {
     },
   };
   return result;
-}
-
-export class ParseError extends Error {
-  constructor(message: string, public pos?: Position) {
-    super(message);
-    this.name = 'ParseError';
-  }
 }
 
 export class TokenizeError extends Error {

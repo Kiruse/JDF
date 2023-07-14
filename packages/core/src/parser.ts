@@ -1,8 +1,10 @@
 import type { Token } from './tokenizer.js'
+import { SourceLocation } from './types.js';
 
 type ASTBase = {
   type: string;
   children?: ASTBase[];
+  loc?: SourceLocation;
 }
 type TokenNode = {
   type: 'token';
@@ -20,7 +22,12 @@ export class Parser<ASTNode extends ASTBase> {
   #phases: Phase<ASTNode>[] = [];
   
   parse(tokens: Token<TokenType<ASTNode>>[]) {
-    const ast: ASTNode[] = tokens.map(t => ({ type: 'token' as const, token: t }) as any);
+    const ast: ASTNode[] = tokens.map(t => ({
+      type: 'token' as const,
+      token: t,
+      loc: t.loc,
+    }) as any);
+    
     this.#phases.forEach(phase => {
       const passes = phase.getPasses();
       const parsepass = () => !!passes.find(pass => pass(ast));
@@ -34,6 +41,13 @@ export class Parser<ASTNode extends ASTBase> {
     this.#phases.push(phase);
     callback(phase);
     return this;
+  }
+  
+  getSnippet(node: ASTNode) {
+    if (!node.loc) return '';
+    const { source, start, end } = node.loc;
+    if (!source) return '';
+    return source.slice(start.offset, end.offset);
   }
   
   readonly ops = ParseOps<ASTNode>();
