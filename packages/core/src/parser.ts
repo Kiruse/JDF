@@ -18,6 +18,12 @@ type TokenType<ASTNode extends ASTBase> =
   ExtractNode<ASTNode, 'token'> extends TokenNode ? ExtractNode<ASTNode, 'token'>['token']['type'] : string;
 type ExtractNode<ASTNode extends ASTBase, T extends ASTNode['type']> = ASTNode & { type: T };
 
+type DeepNode<AST extends ASTBase> = {
+  node: AST;
+  siblings: AST[];
+  index: number;
+}
+
 export class Parser<ASTNode extends ASTBase> {
   #phases: Phase<ASTNode>[] = [];
   
@@ -176,8 +182,8 @@ export function ParseOps<ASTNode extends ASTBase>() {
     //#endregion
     
     /** Creates a predicate to check if the node passed to the returned predicate is a token of given type. */
-    isToken(token: TokenType<ASTNode>): NodePredFn<ASTNode> {
-      return node => isTokenNode(node) && node.token.type === token;
+    isToken(token: TokenType<ASTNode>) {
+      return (node: ASTNode): node is ExtractNode<ASTNode, 'token'> => isTokenNode(node) && node.token.type === token;
     }
     
     findNode(nodes: ASTNode[], pred: NodePred<ASTNode>, offset = 0, limit = nodes.length) {
@@ -192,9 +198,17 @@ export function ParseOps<ASTNode extends ASTBase>() {
       const _type = pred;
       if (typeof pred === 'string')
         pred = (node: ASTNode) => node.type === _type;
-      const recurse = (nodes: ASTNode[]): ASTNode | undefined => {
-        for (const node of nodes)
-          if ((pred as any)(node)) return node
+      const recurse = (nodes: ASTNode[]): DeepNode<ASTNode> | undefined => {
+        for (let i = 0; i < nodes.length; ++i) {
+          const node = nodes[i];
+          if ((pred as any)(node)) {
+            return {
+              node,
+              siblings: nodes,
+              index: i,
+            };
+          }
+        }
         
         for (const node of nodes) {
           if ('children' in node) {
@@ -204,6 +218,23 @@ export function ParseOps<ASTNode extends ASTBase>() {
         }
       }
       return recurse(nodes);
+    }
+    
+    splitNodes(nodes: ASTNode[], pred: NodePred<ASTNode>) {
+      const type = pred;
+      if (typeof pred === 'string')
+        pred = node => node.type === type;
+      
+      const result: ASTNode[][] = [];
+      let curr: ASTNode[] = result[0] = [];
+      for (const node of nodes) {
+        if (pred(node)) {
+          curr = result[result.length] = [];
+        } else {
+          curr.push(node);
+        }
+      }
+      return result;
     }
     
     opthrow(throws: boolean, error: Error): false;
