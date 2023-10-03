@@ -1,5 +1,5 @@
 import Source from './source.js'
-import { Err, Ok, ParseError, Position, Result, SourceLocation } from './types.js';
+import { Err, Ok, ParseError, Position, Result, SourceLocation, TokenizeError } from './types.js';
 
 export type TokenConsumer<T extends string, M extends string> =
   | string
@@ -8,6 +8,7 @@ export type TokenConsumer<T extends string, M extends string> =
 type TokenConsumerCallback<T extends string, M extends string> =
   (api: TokenConsumerAPI<T, M>) => Result<string, void | string | ParseError>;
 
+export type PairTokenType<T extends string> = `${T}.${'open' | 'close'}`;
 type PairType<T extends string> =
   T extends string
     ? string
@@ -29,21 +30,21 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
   #modes: Record<Modes, Tokenizer<Types, Modes, State>> = {} as any;
   #isolate = false;
   state: State = undefined as any;
-  
+
   constructor(parent: Tokenizer<Types, Modes, State> | null = null) {
     this.#parent = parent;
   }
-  
+
   init(state: State): this {
     this.state = state;
     return this;
   }
-  
+
   consume(src: string | Source): Token<Types>[] {
     const tokens: Token<Types>[] = [];
     const source = typeof src === 'string' ? new Source(src) : src;
     const defs = this.getEnabledDefinitions();
-    
+
     let pop = false, _mode: Modes | null = null;
     const pushMode = (mode: Modes) => {
       if (!this.getMode(mode))
@@ -52,39 +53,39 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     };
     const popMode = () => { pop = true };
     const api = new TokenConsumerAPI(this, source, pushMode, popMode);
-    
+
     while (!source.isEOF && !pop) {
       const res = this.#consumeNext(api, defs);
       if (!res.ok)
         throw new TokenizeError(source, res.error);
       if (!this.#skipped[res.value.type])
         tokens.push(res.value);
-      
+
       if (_mode !== null) {
         tokens.push(...this.getMode(_mode).consume(source));
         _mode = null;
       }
     }
-    
+
     if (source.isEOF) {
       tokens.push({
         type: 'EOF' as any,
         loc: makeloc(source, source),
       });
     }
-    
+
     return tokens;
   }
-  
+
   #consumeNext(api: TokenConsumerAPI<Types, Modes>, defs: TokenDefinition<Types, Modes>[]): Result<Token<Types>, ParseError[]> {
     const errors: ParseError[] = [];
     const srcRollback = api.src.clone();
-    
+
     // rolls back the source at the end of each iteration UNLESS the iteration successfully
     // consumed a token and returns
     for (const def of defs) {
       const res = api.consumeDef(def);
-      
+
       if (res.ok) {
         const token: Token<Types> = {
           type: def.type,
@@ -95,14 +96,14 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
       } else {
         errors.push(res.error);
       }
-      
+
       api.src.copy(srcRollback);
     }
-    
+
     // failed to consume any token
     return Err(errors);
   }
-  
+
   /** Enable a token for consumption in this scope. */
   enable(...types: Types[]) {
     for (const type of types)
@@ -115,7 +116,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
       this.#disabled[type] = true;
     return this;
   }
-  
+
   /** (Re)define a token in this scope. A token which is not defined in this scope is instead looked
    * up in the parent scope, if any. Throws if the token is already defined in this scope.
    */
@@ -132,7 +133,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     this.#skipped[type] = !!skip;
     return this;
   }
-  
+
   /** Bump a token definition from the parent scope to this scope. This bumps its priority in the
    * token processing order, so that it is consumed before any tokens so far defined in this scope,
    * as well as any tokens defined in the parent scope.
@@ -148,7 +149,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     }
     return this;
   }
-  
+
   /** Omit a token from the token stream when encountered. */
   skip(type: Types, value?: boolean): this;
   /** Define a token that is 'skipped', i.e. will not be added to the token stream. */
@@ -156,7 +157,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
   skip(type: Types, consume?: boolean | TokenConsumer<Types, Modes>, opts: Omit<TokenOptions<Types>, 'skip'> = {}) {
     if (consume === undefined)
       consume = true;
-    
+
     if (typeof consume === 'boolean') {
       this.#skipped[type] = consume;
     } else {
@@ -169,7 +170,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
       this.skip(type, true);
     return this;
   }
-  
+
   /** Define a pair of tokens with types `${type}.open` and `${type}.close`, such as parentheses,
    * braces, or brackets.
    */
@@ -178,7 +179,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     this.token(`${type}.close` as any, close);
     return this;
   }
-  
+
   getDefinition(type: Types, throws: true): TokenDefinition<Types, Modes>;
   getDefinition(type: Types, throws?: boolean): TokenDefinition<Types, Modes> | undefined;
   getDefinition(type: Types, throws = false): TokenDefinition<Types, Modes> | undefined {
@@ -186,7 +187,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     if (throws && !def) throw Error(`Token ${JSON.stringify(type)} is not defined`);
     return def;
   }
-  
+
   getEnabledDefinitions(): TokenDefinition<Types, Modes>[] {
     if (this.#isolate) {
       return this.#defs.filter(def => !this.#disabled[def.type]);
@@ -209,7 +210,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     }
     return defs;
   }
-  
+
   getMode(mode: Modes): Tokenizer<Types, Modes, State> {
     if (mode as string === 'root') {
       if (!this.#parent) throw Error('Already in root mode');
@@ -217,7 +218,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
       while (tmp.#parent) tmp = tmp.#parent;
       return tmp;
     }
-    
+
     if (this.#modes[mode])
       return this.#modes[mode];
     if (this.#parent) {
@@ -226,7 +227,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     }
     throw Error(`Mode '${mode}' is not defined in this scope`);
   }
-  
+
   /** Whether to isolate this tokenizer from its ancestry. An isolated tokenizer will ignore the
    * enabled tokens of its ancestors.
    */
@@ -234,7 +235,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     this.#isolate = value;
     return this;
   }
-  
+
   /** Create a new tokenizer mode which can be entered from the root or any other tokenizer mode. */
   mode(name: Modes, initializer: (child: Tokenizer<Types, Modes>) => void): this {
     const child = this.#modes[name] = new Tokenizer<Types, Modes, State>(this);
@@ -250,12 +251,12 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
     public readonly pushMode: (mode: Modes) => void,
     public readonly popMode: () => void,
   ) {}
-  
+
   /** Consume a token from the source. */
   consume(type: Types) {
     return this.consumeDef(this.tokenizer.getDefinition(type, true));
   }
-  
+
   consumeAny(...types: Types[]) {
     const defs = types.map(type => this.tokenizer.getDefinition(type, true));
     for (const def of defs) {
@@ -264,11 +265,11 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
     }
     return Err(new ParseError(`Expected one of ${types.map(t => JSON.stringify(t)).join(', ')}`, makeloc(this.source, this.source)));
   }
-  
+
   consumeDef(def: TokenDefinition<Types, Modes>) {
     const { type, consume } = def;
     const { src } = this;
-    
+
     if (typeof consume === 'string') {
       if (src.consume(consume)) {
         return Ok(consume);
@@ -276,7 +277,7 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
         return Err(new ParseError(`Token '${def.type}' expected literal '${consume}'`, makeloc(src, src)));
       }
     }
-    
+
     if (consume instanceof RegExp) {
       const consumed = src.consume(consume);
       if (consumed) {
@@ -285,18 +286,18 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
         return Err(new ParseError(`Token '${def.type}' expected to match ${consume}`, makeloc(src, src)));
       }
     }
-    
+
     if (typeof consume === 'function') {
       const srcStart = src.clone();
       const res = consume(this);
-      
+
       if (res.ok) {
         return Ok(res.value);
       }
-      
+
       const srcEnd = src.clone();
       src.copy(srcStart); // rollback
-      
+
       if (res.error) {
         if (typeof res.error === 'string')
           return Err(new ParseError(res.error, makeloc(srcStart, srcEnd)));
@@ -308,7 +309,7 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
     }
     return Err(new ParseError(`Invalid token definition for '${type}'`));
   }
-  
+
   get tok() { return this.tokenizer }
   get src() { return this.source }
   get state() { return this.tokenizer.state }
@@ -347,23 +348,6 @@ function makeloc(src1: Source, src2: Source): SourceLocation {
     },
   };
   return result;
-}
-
-export class TokenizeError extends Error {
-  public readonly pos?: Position;
-  
-  constructor(src: Source, public errors: ParseError[]) {
-    super(TokenizeError.getMessage(src));
-    this.name = 'TokenizeError';
-  }
-  
-  static getMessage(src: Source) {
-    let sub = src.peek(10);
-    let idx = sub.indexOf('\n');
-    if (idx >= 0) sub = sub.slice(0, idx);
-    if (sub) return `Failed to process token near '${sub}' at ${Position(src)}`;
-    return `Failed to process token at ${Position(src)}`;
-  }
 }
 
 export function keyword<T extends string = string, M extends string = string>(match: string): TokenConsumerCallback<T, M> {

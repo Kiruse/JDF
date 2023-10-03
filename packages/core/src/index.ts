@@ -5,7 +5,9 @@ export {
   Err,
   Ok,
   ParseError,
-  Position,
-  Result,
-  SourceLocation,
+  TokenizeError,
+  type Position,
+  type Result,
+  type SourceLocation,
 } from './types.js'
+export * as UnicodeTools from './generated/unicode-helpers.js'

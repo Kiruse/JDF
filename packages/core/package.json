@@ -1,33 +1,27 @@
 {
-	"name": "@kiruse/jdf-core",
-	"version": "0.2.4-alpha.1",
-	"description": "JavaScript Dialect Framework core",
-	"type": "module",
-	"main": "dist/index.js",
-	"author": "Kiruse",
-	"license": "MIT",
-	"scripts": {
-		"build": "tsc -b",
-		"build:unicode": "coffee script/build-unicode-helpers.coffee",
-		"watch": "coffee -cw test",
-		"test": "mocha",
-		"prepack": "yarn build",
-		"pretest": "yarn build"
-	},
-	"dependencies": {
-		"chalk": "^4"
-	},
-	"devDependencies": {
-		"@types/chai": "^4.3.5",
-		"@types/mocha": "^10.0.1",
-		"@types/node": "^18.11.11",
-		"@unicode/unicode-15.1.0": "^0.0.2",
-		"chai": "^4.3.7",
-		"coffeescript": "^2.7.0",
-		"mocha": "^10.2.0",
-		"typescript": "^4.9.3"
-	},
-	"mocha": {
-		"spec": "test/**/*.spec.js"
-	}
+  "name": "@kiruse/jdf-core",
+  "version": "0.2.4-alpha.1",
+  "description": "JavaScript Dialect Framework core",
+  "type": "module",
+  "main": "dist/index.js",
+  "author": "Kiruse",
+  "license": "MIT",
+  "exports": {
+    ".": "./dist/index.js",
+    "./dev": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "bun run script/build.coffee",
+    "build:unicode": "bun script/build-unicode-helpers.coffee",
+    "prepack": "bun run build"
+  },
+  "dependencies": {
+    "chalk": "^4"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.11",
+    "@unicode/unicode-15.1.0": "^0.0.2",
+    "bun-coffeescript": "^1.0.2",
+    "bun-types": "^1.0.3"
+  }
 }

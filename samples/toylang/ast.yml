@@ -108,7 +108,8 @@
         type: lit.tpl.close
         value: "`"
       children:
-        - type: token
+        - type: lit.str
+          value: "1 + 2 = "
           token:
             type: lit.tpl.str
             value: "1 + 2 = "

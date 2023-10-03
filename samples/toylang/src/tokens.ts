@@ -1,8 +1,13 @@
-import type { Token as JDFToken } from '@kiruse/jdf-core'
+import type { Token as JDFToken, PairTokenType } from '@kiruse/jdf-core'
 
 export type Token<T extends TokenType = TokenType> = JDFToken<T>;
 export type IdentToken = Token<'ident'>;
 export type IndentToken = Token<'special.indent'>;
+
+export type TokenNode = {
+  type: 'token';
+  token: Token;
+}
 
 export type TokenizerModes =
   | 'root' // default tokenizer mode
@@ -10,32 +15,16 @@ export type TokenizerModes =
   | 'intrp'
 
 export type TokenType =
-  | CommentTokenType
-  | KeywordTokenType
-  | PunctuationTokenType
-  | LiteralTokenType
-  | SpecialTokenType
-  | 'ident'
-  | 'ws'
-  | 'EOF'
-
-export type CommentTokenType = 'comment.single' | 'comment.multi' | 'comment.doc';
-
-export type KeywordTokenType =
+  | `comment.${'single' | 'multi' | 'doc'}`
   | `kw.${'import' | 'export'}`
-
-export type PunctuationTokenType =
   | 'punct'
-  | `punct.${'paren' | 'brace' | 'bracket'}.${'open' | 'close'}`
-
-export type LiteralTokenType =
+  | PairTokenType<`punct.${'paren' | 'brace' | 'bracket'}`>
   | 'lit.frac'
   | `lit.${'bin' | 'oct' | 'int' | 'hex'}`
   | `lit.${'float' | 'dec'}`
-  | `lit.str`
+  | 'lit.str'
   | `lit.tpl.${'open' | 'close' | `intrp.${'open' | 'close'}` | 'str'}`
-
-export type SpecialTokenType =
-  | 'special.indent'
-  | 'special.newline'
-  | 'special.whitespace'
+  | `special.${'indent' | 'newline' | 'whitespace'}`
+  | 'ident'
+  | 'ws'
+  | 'EOF'

@@ -1,6 +1,8 @@
 import { Err, keyword, Ok, Source, Tokenizer } from '@kiruse/jdf-core'
-import { isMath, isPunctuation } from '@kiruse/jdf-core/dist/generated/unicode-helpers.js'
+import { UnicodeTools } from '@kiruse/jdf-core'
 import { TokenType, TokenizerModes } from './tokens.js'
+
+const { isMath, isPunctuation } = UnicodeTools;
 
 const tokenizer = new Tokenizer<TokenType, TokenizerModes>();
 const kw = keyword.pin<TokenType, TokenizerModes>();
@@ -29,23 +31,23 @@ tokenizer
 .token('lit.float', api => {
   const { src } = api;
   let int = '', decimal = '', exp = '';
-  
+
   const resInt = api.consume('lit.int');
   if (!resInt.ok) return Err(`Token 'lit.float' expected integer part`);
   int = resInt.value;
-  
+
   if (src.consume('.')) {
     const resDec = api.consume('lit.int');
     if (!resDec.ok) return Err(`Token 'lit.float' expected decimal part`);
     decimal = resDec.value;
   }
-  
+
   if (src.consume(/^[eE]/)) {
     const resExp = api.consume('lit.int');
     if (!resExp.ok) return Err(`Token 'lit.float' expected exponent part`);
     exp = resExp.value;
   }
-  
+
   if (!decimal && !exp)
     return Err(`Token 'lit.float' expected decimal or exponent part`);
   return Ok(`${int}|${decimal}|${exp}`);
@@ -58,7 +60,7 @@ tokenizer
   const quote = api.src.consume(/^["']/);
   if (!quote)
     return Err(`Token 'lit.string' expected a quote ['"]`);
-  
+
   let contents = '';
   while (api.src.peek() !== quote) {
     let char = api.src.consume();
@@ -92,11 +94,11 @@ tokenizer
 .token('special.indent', ({ src }) => {
   if (src.prev !== '\n')
     return Err(`Token 'special.indent' expected preceeding newline`);
-  
+
   const indent = src.consume();
   if (!indent?.match(/[ \t]/))
     return Err(`Token 'special.indent' expected horizontal whitespace`);
-  
+
   let consumed = indent;
   while (src.peek() === indent)
     consumed += src.consume();
@@ -132,7 +134,7 @@ tokenizer
       if (consumed) {
         result += consumed;
       }
-      
+
       // currently only supports simple escaping
       if (src.peek() === '\\') {
         result += src.consume(2);

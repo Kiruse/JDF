@@ -1,7 +1,7 @@
-import { TokenizeError } from '@kiruse/jdf-core'
+import { TokenizeError } from '@kiruse/jdf-core/dev'
 import fs from 'node:fs/promises'
 import * as YAML from 'yaml'
-import parse from './dist/parse.js'
+import parse from './src/parse'
 
 const source = await fs.readFile('./assets/sample01.txt', 'utf8');
 

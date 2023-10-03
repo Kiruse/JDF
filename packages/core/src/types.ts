@@ -1,5 +1,9 @@
 import type Source from './source.js'
 
+export type TypeGuard<In, Out extends In = In> = (value: In) => value is Out;
+export type GuardedType<TG> = TG extends TypeGuard<any, infer Out> ? Out : boolean;
+export type Ever<T1, T2> = T1 extends never ? T2 : T1;
+
 export type Result<T, E = Error> = Ok<T> | Err<E>;
 
 export type Ok<T> = T extends void ? { ok: true, value?: undefined } : { ok: true, value: T };
@@ -44,7 +48,7 @@ export class ParseError extends Error {
     super(ParseError.getMessage(message, loc));
     this.name = 'ParseError';
   }
-  
+
   static getMessage(message: string, loc?: SourceLocation) {
     if (loc) {
       message += ` at ${loc.start.line}:${loc.start.column}`;
@@ -53,5 +57,22 @@ export class ParseError extends Error {
       }
     }
     return message;
+  }
+}
+
+export class TokenizeError extends Error {
+  public readonly pos?: Position;
+
+  constructor(src: Source, public errors: ParseError[]) {
+    super(TokenizeError.getMessage(src));
+    this.name = 'TokenizeError';
+  }
+
+  static getMessage(src: Source) {
+    let sub = src.peek(10);
+    let idx = sub.indexOf('\n');
+    if (idx >= 0) sub = sub.slice(0, idx);
+    if (sub) return `Failed to process token near '${sub}' at ${Position(src)}`;
+    return `Failed to process token at ${Position(src)}`;
   }
 }
