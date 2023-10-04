@@ -10,7 +10,7 @@ type TokenConsumerCallback<T extends string, M extends string> =
 
 export type PairTokenType<T extends string> = `${T}.${'open' | 'close'}`;
 type PairType<T extends string> =
-  T extends string
+  string extends T
     ? string
     : T extends `${infer P}.${'open' | 'close'}` ? P : never;
 
