@@ -1,4 +1,4 @@
-import { TokenizeError } from '@kiruse/jdf-core/dev'
+import { TokenizeError } from '@kiruse/jdf-core/bun'
 import fs from 'node:fs/promises'
 import * as YAML from 'yaml'
 import parse from './src/parse'
