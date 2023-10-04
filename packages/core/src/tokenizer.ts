@@ -45,8 +45,8 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     const source = typeof src === 'string' ? new Source(src) : src;
     const defs = this.getEnabledDefinitions();
 
-    let pop = false, _mode: Modes | null = null;
-    const pushMode = (mode: Modes) => {
+    let pop = false, _mode: 'root' | Modes | null = null;
+    const pushMode = (mode: 'root' | Modes) => {
       if (!this.getMode(mode))
         throw Error(`Mode '${mode}' does not exist`);
       _mode = mode;
@@ -211,8 +211,8 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
     return defs;
   }
 
-  getMode(mode: Modes): Tokenizer<Types, Modes, State> {
-    if (mode as string === 'root') {
+  getMode(mode: 'root' | Modes): Tokenizer<Types, Modes, State> {
+    if (mode === 'root') {
       if (!this.#parent) throw Error('Already in root mode');
       let tmp: Tokenizer<Types, Modes, State> = this;
       while (tmp.#parent) tmp = tmp.#parent;
@@ -248,7 +248,7 @@ class TokenConsumerAPI<Types extends string, Modes extends string> {
   constructor(
     public readonly tokenizer: Tokenizer<Types, Modes>,
     public readonly source: Source,
-    public readonly pushMode: (mode: Modes) => void,
+    public readonly pushMode: (mode: 'root' | Modes) => void,
     public readonly popMode: () => void,
   ) {}
 
