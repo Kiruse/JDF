@@ -5,9 +5,9 @@ export default class Source {
   #row = 1;
   #col = 0;
   caseSensitive = true;
-  
+
   constructor(public readonly text: string, public readonly file = '') {}
-  
+
   /** Consume `n` characters from the underlying source code. If not possible, i.e. if less than `n`
    * characters are available, return `undefined`.
    */
@@ -28,10 +28,10 @@ export default class Source {
     }
     if (typeof x === 'string') {
       const s = this.caseSensitive ? x : x.toLowerCase();
-      
+
       let subtext = this.text.slice(this.#idx, this.#idx + s.length);
       if (!this.caseSensitive) subtext = subtext.toLowerCase();
-      
+
       if (subtext !== s) {
         return false;
       } else {
@@ -42,7 +42,7 @@ export default class Source {
     if (x instanceof RegExp) {
       const rx = normalizeRegex(x, this.caseSensitive);
       const subtext = this.text.slice(this.#idx);
-      
+
       const [match] = subtext.match(rx) ?? [];
       if (!match || !subtext.startsWith(match)) return;
       this._bumpCursor(match);
@@ -70,7 +70,7 @@ export default class Source {
       return read;
     }
   }
-  
+
   /** Consume all source until the first occurrence of `s`. */
   consumeUntil(s: string): string;
   /** Consume all source until the first match of the given `rx`. */
@@ -102,7 +102,7 @@ export default class Source {
     }
     throw Error('should not reach');
   }
-  
+
   /** Returns the next `n` characters from the underlying source without altering the internal
    * cursor. May return less if the end of the source is reached.
    */
@@ -127,24 +127,24 @@ export default class Source {
       return !!curr.match(/[ \t]/);
     }
   }
-  
+
   /** Bump the cursor along `consumed`, tracking line & column numbers appropriately. */
   protected _bumpCursor(consumed: string): string {
     const idxLastNL = consumed.lastIndexOf('\n');
     const newlines = consumed.match(/\n/g)?.length ?? 0;
-    
+
     this.#idx += consumed.length;
     this.#row += newlines;
-    
+
     if (newlines) {
       this.#col = consumed.length - idxLastNL - 1;
     } else {
       this.#col += consumed.length;
     }
-    
+
     return consumed;
   }
-  
+
   /** Create a clone of this `Source` which can be used e.g. to backtrack. */
   clone() {
     const clone = new Source(this.text);
@@ -160,7 +160,7 @@ export default class Source {
     this.caseSensitive = other.caseSensitive;
     return this;
   }
-  
+
   slice(start: number, end?: number) {
     if (start >= 0) {
       start += this.#idx;
@@ -170,19 +170,63 @@ export default class Source {
     }
     return this.text.slice(start, end);
   }
-  
+
+  /**
+   * Whether current caret is at the start of a line. If `ignoreWS` is set, any whitespaces between
+   * the caret and the last line break are ignored.
+   */
+  isStartOfLine(ignoreWS = true) {
+    if (!ignoreWS) return this.col === 0;
+    let idx = this.#idx - 1;
+    while (idx >= 0 && this.text[idx] !== '\n') {
+      if (!this.text[idx].match(/\s/)) return false;
+      idx--;
+    }
+    return true;
+  }
+
+  getIndent(s = '  ') {
+    let idx = this.#idx;
+    let count = 0;
+    while (idx > 0 && this.text[idx-1] !== '\n') {
+      if (this.text.slice(idx - s.length, idx) !== s)
+        return undefined;
+      count++;
+      idx -= s.length;
+    }
+    return count;
+  }
+
+  /** Check if the current caret is at a given indent */
+  isIndent(level: number, s = '  ') {
+    return this.getIndent(s) === level;
+  }
+
+  /** Current character at caret */
   get curr() { return this.peek() }
+  /** Previous character immediately before caret */
   get prev() { return this.text[this.#idx - 1] }
+  /** 0-indexed absolute offset from start of source */
   get offset() { return this.#idx }
+  /** 1-indexed line number in source */
   get line() { return this.#row }
+  /** Alias for line number */
   get row() { return this.#row }
+  /** 0-indexed offset within line */
   get col() { return this.#col }
+  /** 0-indexed offset within line */
   get column() { return this.#col }
+  /** Whether offset >= length */
   get isEOF() { return this.#idx >= this.text.length }
+  /** Whether previous character is a whitespace */
   get isWS() { return !!this.prev.match(/\s/) }
+  /** Whether previous character is a horizontal whitespace */
   get isHWS() { return !!this.prev.match(/[ \t]/) }
+  /** Whether previous character is a vertical whitespace */
   get isVWS() { return this.prev === '\n' }
+  /** Remaining substring (after current caret) */
   get remain() { return this.text.substring(this.#idx) }
+  /** Remaining length (after current caret) */
   get length() { return this.text.length - this.#idx }
 }
 
