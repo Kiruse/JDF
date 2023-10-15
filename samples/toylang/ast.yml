@@ -102,23 +102,23 @@
   children:
     - type: lit.tpl
       left:
-        type: lit.tpl.open
+        type: tpl.open
         value: "`"
       right:
-        type: lit.tpl.close
+        type: tpl.close
         value: "`"
       children:
         - type: lit.str
           value: "1 + 2 = "
           token:
-            type: lit.tpl.str
+            type: tpl.str
             value: "1 + 2 = "
         - type: intrp
           left:
-            type: lit.tpl.intrp.open
+            type: tpl.intrp.open
             value: ${
           right:
-            type: lit.tpl.intrp.close
+            type: tpl.intrp.close
             value: "}"
           children:
             - type: token

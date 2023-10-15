@@ -1,4 +1,4 @@
-import { Parser } from '@kiruse/jdf-core'
+import { Parser } from '@kiruse/jdf-core/bun'
 import type { ASTNode } from './ast';
 import tokenize from './tokenize'
 
@@ -13,7 +13,7 @@ parser.phase(({ pass }) => {
       token: node.token,
     })
   ));
-  pass(replace(isToken('lit.tpl.str'))(
+  pass(replace(isToken('tpl.str'))(
     (node) => ({
       type: 'lit.str',
       value: node.token.value,
@@ -22,30 +22,42 @@ parser.phase(({ pass }) => {
   ));
 })
 parser.phase(({ pass }) => {
-  pass(group(isToken('lit.tpl.intrp.open'), isToken('lit.tpl.intrp.close'))(
-    (left, nodes, right) => ({
+  pass(
+    group(
+      isToken('tpl.intrp.open'),
+      isToken('tpl.intrp.close'),
+      { recursive: true },
+    )((left, nodes, right) => ({
       type: 'intrp',
       left: left.token,
       right: right.token,
       children: nodes,
-    })
-  ));
-  pass(group(isToken('lit.tpl.open'), isToken('lit.tpl.close'))(
-    (left, nodes, right) => ({
+    }))
+  );
+  pass(
+    group(
+      isToken('tpl.open'),
+      isToken('tpl.close'),
+      { recursive: true },
+    )((left, nodes, right) => ({
       type: 'lit.tpl',
       left: left.token,
       right: right.token,
       children: nodes,
-    })
-  ));
-  pass(group(isToken('punct.paren.open'), isToken('punct.paren.close'))(
-    (left, nodes, right) => ({
+    }))
+  );
+  pass(
+    group(
+      isToken('punct.paren.open'),
+      isToken('punct.paren.close'),
+      { recursive: true },
+    )((left, nodes, right) => ({
       type: 'group',
       left: left.token,
       right: right.token,
       children: nodes,
-    })
-  ));
+    }))
+  );
 })
 
 const parse = (source: string) => parser.parse(tokenize(source));

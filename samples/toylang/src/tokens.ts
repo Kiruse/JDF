@@ -1,4 +1,4 @@
-import type { Token as JDFToken, PairTokenType } from '@kiruse/jdf-core'
+import type { Token as JDFToken, PairTokenType } from '@kiruse/jdf-core/bun'
 
 export type Token<T extends TokenType = TokenType> = JDFToken<T>;
 export type IdentToken = Token<'ident'>;
@@ -9,11 +9,6 @@ export type TokenNode = {
   token: Token;
 }
 
-export type TokenizerModes =
-  | 'root' // default tokenizer mode
-  | 'tpl' // string template literal mode
-  | 'intrp'
-
 export type TokenType =
   | `comment.${'single' | 'multi' | 'doc'}`
   | `kw.${'import' | 'export'}`
@@ -23,7 +18,8 @@ export type TokenType =
   | `lit.${'bin' | 'oct' | 'int' | 'hex'}`
   | `lit.${'float' | 'dec'}`
   | 'lit.str'
-  | `lit.tpl.${'open' | 'close' | `intrp.${'open' | 'close'}` | 'str'}`
+  | `tpl.${'open' | 'close' | 'str'}`
+  | `tpl.intrp.${'open' | 'close'}`
   | `special.${'indent' | 'newline' | 'whitespace'}`
   | 'ident'
   | 'ws'

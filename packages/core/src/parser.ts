@@ -6,6 +6,10 @@ export type ASTBase = {
   children?: ASTBase[];
   loc?: SourceLocation | null;
 }
+export type ExcludeIntermittentNodes<AST extends ASTBase> =
+  AST extends { type: `_${string}` }
+  ? never
+  : AST;
 
 export type TokenNode = {
   type: 'token';
@@ -33,7 +37,7 @@ type DeepNode<AST extends ASTBase> = {
 export class Parser<ASTNode extends ASTBase> {
   #phases: Phase<ASTNode>[] = [];
 
-  parse(tokens: Token<TokenType<ASTNode>>[]) {
+  parse(tokens: Token<TokenType<ASTNode>>[]): ExcludeIntermittentNodes<ASTNode>[] {
     const ast: ASTNode[] = tokens.map(t => ({
       type: 'token' as const,
       token: t,
@@ -45,7 +49,15 @@ export class Parser<ASTNode extends ASTBase> {
       const parsepass = () => !!passes.find(pass => pass.call(phase, ast));
       while (parsepass());
     });
-    return ast;
+
+    for (const node of ast) {
+      if (node.type.startsWith('_')) {
+        console.warn(`Found intermittent type after parsing: ${node.type}. This is likely a bug in the parser.`);
+        break;
+      }
+    }
+
+    return ast as any;
   }
 
   phase(callback: (this: Phase<ASTNode>, phase: Phase<ASTNode>) => void) {

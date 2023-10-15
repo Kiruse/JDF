@@ -1,6 +1,9 @@
-import { Err, keyword, Ok, Source, Tokenizer } from '@kiruse/jdf-core'
-import { UnicodeTools } from '@kiruse/jdf-core'
-import { TokenType, TokenizerModes } from './tokens.js'
+import { Err, keyword, Ok, Source, Tokenizer, UnicodeTools } from '@kiruse/jdf-core/bun'
+import { TokenType } from './tokens.js'
+
+export type TokenizerModes =
+  | 'tpl' // string template literal mode
+  | 'tpl.intrp' // string template interpolation mode
 
 const { isMath, isPunctuation } = UnicodeTools;
 
@@ -74,22 +77,12 @@ tokenizer
     return Err('Unterminated string literal');
   return Ok(contents);
 })
-.token('lit.tpl.open', api => {
-  const { src } = api;
-  if (!src.consume('`'))
-    return Err(`Token 'lit.template' expected a backtick '\`'`);
-  api.pushMode('tpl');
-  return Ok('`');
-})
+
+// simple pair tokens differ from scopeModes in that they aren't logically enforced, i.e. a
+// `punct.paren.close` may come without a preceeding `punct.paren.open` and vice versa
 .pair('punct.paren', '(', ')')
 .pair('punct.brace', '{', '}')
 .pair('punct.bracket', '[', ']')
-.token('punct', ({ src }) => {
-  let result = '';
-  while (isPunctuation(src.peek()) || isMath(src.peek()))
-    result += src.consume();
-  return result ? Ok(result) : Err();
-})
 
 .token('special.indent', ({ src }) => {
   if (src.prev !== '\n')
@@ -118,46 +111,51 @@ tokenizer
 .skip('special.whitespace', /^[ \t]+/) // don't care about interspersed horizontal whitespaces
 .token('ident', /^[A-Za-z_][A-Za-z0-9_]*/)
 
-.mode('tpl', tokenizer => {
-  tokenizer
-  .isolate()
-  .token('lit.tpl.intrp.open', api => {
-    if (!api.src.consume('${')) return Err(`Token 'lit.tpl.intrp' expected '$\{'`);
-    api.pushMode('intrp');
-    return Ok('${');
-  })
-  .token('lit.tpl.str', api => {
-    let result = '';
-    const { src } = api;
-    while (!src.peek('`') && !src.peek('${')) {
-      const consumed = src.consumeUntil(/[`\\]|\$\{/);
-      if (consumed) {
-        result += consumed;
-      }
+.scopeMode('tpl', {
+  open: '`',
+  close: '`',
+  init: tokenizer => {
+    tokenizer
+    .isolate()
+    .token('tpl.str', api => {
+      let result = '';
+      const { src } = api;
+      while (!src.peek('`') && !src.peek('${')) {
+        const consumed = src.consumeUntil(/[`\\]|\$\{/);
+        if (consumed) {
+          result += consumed;
+        }
 
-      // currently only supports simple escaping
-      if (src.peek() === '\\') {
-        result += src.consume(2);
+        // currently only supports simple escaping
+        if (src.peek() === '\\') {
+          result += src.consume(2);
+        }
       }
-    }
-    return result ? Ok(result) : Err();
-  })
-  .token('lit.tpl.close', api => {
-    if (!api.src.consume('`'))
-      return Err(`Token 'lit.tpl.close' expected a backtick '\`'`);
-    api.popMode();
-    return Ok('`');
-  })
+      return result ? Ok(result) : Err();
+    })
+    .bump('tpl.intrp.open')
+  },
 })
-.mode('intrp', tokenizer => {
-  tokenizer
-  .token('lit.tpl.intrp.close', api => {
-    if (!api.src.consume('}'))
-      return Err(`Token 'lit.tpl.intrp.close' expected a closing brace '}'`);
-    api.popMode();
-    return Ok('}');
-  })
+
+// `tpl.intrp` has to be a separate mode in order to re-enable & extend root tokens within a
+// template interpolation. implicitly, a scope mode creates 2 additional tokens:
+// - `${name}.open` in the root mode (disabled in root, bumped in `tpl`)
+// - `${name}.close` in itself (so it's only valid when already parsing a template interpolation)
+.scopeMode('tpl.intrp', {
+  open: '${',
+  close: '}',
 })
-;
+.disable('tpl.intrp.open') // must be manually enabled by consuming modes
+
+// must come after scopeMode above due to order of precedence
+.token('punct', ({ src }) => {
+  let result = '';
+  while (isPunctuation(src.peek()) || isMath(src.peek()))
+    result += src.consume();
+  return result ? Ok(result) : Err();
+})
+
+.seal();
+
 const tokenize = (source: string) => tokenizer.consume(new Source(source));
 export default tokenize;

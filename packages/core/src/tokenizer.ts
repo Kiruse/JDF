@@ -1,5 +1,6 @@
 import Source from './source.js'
 import { Err, Ok, ParseError, Position, Result, SourceLocation, TokenizeError } from './types.js';
+import { debug } from './utils.js';
 
 export type TokenConsumer<T extends string, M extends string> =
   | string
@@ -13,6 +14,10 @@ type PairType<T extends string> =
   string extends T
     ? string
     : T extends `${infer P}.${'open' | 'close'}` ? P : never;
+type ScopeMode<T extends string, M extends string> =
+  string extends T | M
+    ? string
+    : T extends `${infer P}.${'open' | 'close'}` ? (P & M) : never;
 
 interface TokenOptions<T extends string> {
   /** Whether this token, when consumed, is silently removed from the token stream. */
@@ -21,13 +26,21 @@ interface TokenOptions<T extends string> {
   disable?: boolean;
 }
 
+export type ScopeModeDefin<T extends string, M extends string> = {
+  init?: (child: Tokenizer<T, M>) => void;
+  open: TokenConsumer<T, M>;
+  close: TokenConsumer<T, M>;
+}
+
 export class Tokenizer<Types extends string = string, Modes extends string = string, State = any> {
+  #sealed = false;
   #parent: Tokenizer<Types, Modes, State> | null = null;
   #defs: TokenDefinition<Types, Modes>[] = [];
   #disabled: Record<Types, boolean> = {} as any;
   #skipped: Record<Types, boolean> = {} as any;
   #map: Record<Types, TokenDefinition<Types, Modes>> = {} as any;
   #modes: Record<Modes, Tokenizer<Types, Modes, State>> = {} as any;
+  #modeInits: (() => void)[] = []; // child argument should be bound
   #isolate = false;
   state: State = undefined as any;
 
@@ -36,6 +49,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
   }
 
   init(state: State): this {
+    this.assertUnsealed();
     this.state = state;
     return this;
   }
@@ -62,12 +76,16 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
         tokens.push(res.value);
 
       if (_mode !== null) {
+        debug(`entering mode ${_mode}`);
         tokens.push(...this.getMode(_mode).consume(source));
         _mode = null;
       }
     }
 
+    if (pop) debug(`leaving mode`);
+
     if (source.isEOF) {
+      debug('EOF');
       tokens.push({
         type: 'EOF' as any,
         loc: makeloc(source, source),
@@ -106,12 +124,14 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
 
   /** Enable a token for consumption in this scope. */
   enable(...types: Types[]) {
+    this.assertUnsealed();
     for (const type of types)
       this.#disabled[type] = false;
     return this;
   }
   /** Disable a token for consumption in this scope. */
   disable(...types: Types[]) {
+    this.assertUnsealed();
     for (const type of types)
       this.#disabled[type] = true;
     return this;
@@ -121,6 +141,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
    * up in the parent scope, if any. Throws if the token is already defined in this scope.
    */
   token(type: Types, consume: TokenConsumer<Types, Modes>, { skip, disable }: TokenOptions<Types> = {}): this {
+    this.assertUnsealed();
     if (this.#map[type])
       throw Error(`Token ${JSON.stringify(type)} is already defined in this scope`);
     const def: TokenDefinition<Types, Modes> = {
@@ -139,6 +160,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
    * as well as any tokens defined in the parent scope.
    */
   bump(...types: Types[]) {
+    this.assertUnsealed();
     for (const type of types) {
       if (this.#map[type])
         throw Error(`Token ${JSON.stringify(type)} is already defined in this scope`);
@@ -155,6 +177,7 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
   /** Define a token that is 'skipped', i.e. will not be added to the token stream. */
   skip(type: Types, consume: TokenConsumer<Types, Modes>, flags?: Omit<TokenOptions<Types>, 'skip'>): this;
   skip(type: Types, consume?: boolean | TokenConsumer<Types, Modes>, opts: Omit<TokenOptions<Types>, 'skip'> = {}) {
+    this.assertUnsealed();
     if (consume === undefined)
       consume = true;
 
@@ -232,16 +255,63 @@ export class Tokenizer<Types extends string = string, Modes extends string = str
    * enabled tokens of its ancestors.
    */
   isolate(value = true) {
+    this.assertUnsealed();
     this.#isolate = value;
     return this;
   }
 
   /** Create a new tokenizer mode which can be entered from the root or any other tokenizer mode. */
   mode(name: Modes, initializer: (child: Tokenizer<Types, Modes>) => void): this {
+    this.assertUnsealed();
+
     const child = this.#modes[name] = new Tokenizer<Types, Modes, State>(this);
-    initializer(child);
+    this.#modeInits.push(initializer.bind(null, child));
     return this;
   }
+
+  scopeMode(name: ScopeMode<Types, Modes>, { init, open, close }: ScopeModeDefin<Types, Modes>) {
+    this.mode(name as any, child => {
+      init?.(child);
+      // closing token should be registered last so it doesn't prematurely close the mode
+      child.token(`${name}.close` as any, api => {
+        const res = api.consumeDef({
+          type: `${name}.close` as any,
+          consume: close,
+        });
+        if (res.ok) {
+          api.popMode();
+        }
+        return res;
+      });
+    });
+    this.token(`${name}.open` as any, api => {
+      const res = api.consumeDef({
+        type: `${name}.open` as any,
+        consume: open,
+      });
+      if (res.ok) {
+        api.pushMode(name as any);
+      }
+      return res;
+    });
+    return this;
+  }
+
+  /** Asserts that this tokenizer has not yet been sealed. */
+  assertUnsealed() {
+    if (this.#sealed) throw Error('Tokenizer is sealed');
+  }
+  /**
+   * Seal this tokenizer & executes deferred initialization callbacks. A sealed tokenizer will no
+   * longer accept changes to its definitions.
+   */
+  seal() {
+    this.#sealed = true;
+    for (const init of this.#modeInits)
+      init();
+    return this;
+  }
+  get sealed() { return this.#sealed }
 }
 
 class TokenConsumerAPI<Types extends string, Modes extends string> {
@@ -358,3 +428,13 @@ export function keyword<T extends string = string, M extends string = string>(ma
   }
 }
 keyword.pin = <T extends string, M extends string>() => (match: T) => keyword<T, M>(match);
+
+export function punctuation<T extends string = string, M extends string = string>(match: string): TokenConsumerCallback<T, M> {
+  return ({ src }) => {
+    if (src.consume(match))
+      return Ok(match);
+    return Err();
+  }
+}
+export const punct = punctuation;
+punctuation.pin = <T extends string, M extends string>() => (match: T) => punctuation<T, M>(match);
