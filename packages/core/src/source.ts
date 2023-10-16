@@ -224,6 +224,8 @@ export default class Source {
   get isHWS() { return !!this.prev.match(/[ \t]/) }
   /** Whether previous character is a vertical whitespace */
   get isVWS() { return this.prev === '\n' }
+  /** Whether previous character is a unicode punctuation */
+  get isPunct() { return isPunctuation(this.prev) }
   /** Remaining substring (after current caret) */
   get remain() { return this.text.substring(this.#idx) }
   /** Remaining length (after current caret) */
